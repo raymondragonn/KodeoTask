@@ -1,59 +1,137 @@
-# TaskCore
+# TaskCore - Sistema de Gestión de Tareas Colaborativas
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.11.
+Aplicación de gestión de tareas colaborativas con arquitectura Cliente-Servidor que implementa RESTful API, comunicación TCP/UDP, multithreading y autenticación.
 
-## Development server
+## Características
 
-To start a local development server, run:
+- ✅ **Arquitectura Cliente-Servidor**: Cliente Angular y Servidor Java
+- ✅ **RESTful API**: POST, GET, PUT, DELETE para gestión de tareas
+- ✅ **Sockets TCP**: Comunicación confiable para solicitudes REST
+- ✅ **Sockets UDP**: Notificaciones en tiempo real
+- ✅ **Multithreading**: Servidor maneja múltiples clientes concurrentemente
+- ✅ **Autenticación**: Sistema de login/registro con tokens
+- ✅ **Base de Datos**: SQLite para persistencia de datos
 
+## Requisitos
+
+- Java 17 o superior
+- Maven 3.6+
+- Node.js 18+ y npm
+- Angular CLI 19+
+
+## Instalación
+
+### Servidor Java
+
+1. Navega a la carpeta del servidor:
 ```bash
-ng serve
+cd server
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
+2. Compila el proyecto:
 ```bash
-ng generate component component-name
+mvn clean compile
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
+3. Ejecuta el servidor:
 ```bash
-ng generate --help
+mvn exec:java -Dexec.mainClass="com.taskcore.server.TaskCoreServer"
 ```
 
-## Building
+El servidor se iniciará en:
+- **TCP**: Puerto 8080 (para REST API)
+- **UDP**: Puerto 8081 (para notificaciones)
 
-To build the project run:
+### Cliente Angular
 
+1. Instala las dependencias:
 ```bash
-ng build
+npm install
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
+2. Inicia el servidor de desarrollo:
 ```bash
-ng test
+npm start
 ```
 
-## Running end-to-end tests
+La aplicación estará disponible en `http://localhost:4200`
 
-For end-to-end (e2e) testing, run:
+## Uso
 
-```bash
-ng e2e
+1. **Registro**: Crea una nueva cuenta en `/register`
+2. **Login**: Inicia sesión con tus credenciales en `/login`
+3. **Gestión de Tareas**: 
+   - Crea nuevas tareas
+   - Actualiza el estado de las tareas
+   - Asigna tareas a otros usuarios
+   - Elimina tareas
+   - Filtra por estado
+
+## API Endpoints
+
+### Autenticación
+- `POST /api/auth/register` - Registrar nuevo usuario
+- `POST /api/auth/login` - Iniciar sesión
+
+### Tareas
+- `GET /api/tasks` - Obtener todas las tareas del usuario
+- `GET /api/tasks/{id}` - Obtener una tarea específica
+- `POST /api/tasks` - Crear nueva tarea
+- `PUT /api/tasks/{id}` - Actualizar tarea
+- `DELETE /api/tasks/{id}` - Eliminar tarea
+
+**Nota**: Todas las rutas de tareas requieren autenticación mediante token Bearer.
+
+## Estructura del Proyecto
+
+```
+TaskCore/
+├── server/                 # Servidor Java
+│   ├── src/main/java/
+│   │   └── com/taskcore/
+│   │       ├── model/      # Modelos de datos
+│   │       ├── database/   # Gestión de BD
+│   │       └── server/     # Servidores TCP/UDP y REST
+│   └── pom.xml
+└── src/                    # Cliente Angular
+    └── app/
+        ├── components/     # Componentes UI
+        ├── services/      # Servicios de comunicación
+        └── models/        # Modelos TypeScript
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## Notificaciones UDP
 
-## Additional Resources
+El servidor envía notificaciones UDP cuando:
+- Se crea una nueva tarea
+- Se actualiza una tarea
+- Se asigna una tarea a un usuario
+- Se elimina una tarea
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+**Nota**: En navegadores web, UDP no está disponible directamente. El cliente Angular está preparado para usar WebSocket como alternativa para notificaciones en tiempo real.
+
+## Base de Datos
+
+La aplicación usa SQLite. El archivo `taskcore.db` se crea automáticamente en la raíz del proyecto del servidor.
+
+## Desarrollo
+
+### Compilar el servidor
+```bash
+cd server
+mvn clean package
+```
+
+### Ejecutar tests
+```bash
+# Servidor
+cd server
+mvn test
+
+# Cliente
+npm test
+```
+
+## Licencia
+
+Este proyecto es de código abierto y está disponible para uso educativo.

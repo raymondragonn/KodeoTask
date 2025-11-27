@@ -1,9 +1,33 @@
 <div class="register-container">
   <div class="register-card">
-    <h1>TaskCore</h1>
+    <h1>KodeoTask</h1>
     <h2>Crear Cuenta</h2>
     
     <form (ngSubmit)="onSubmit()" #registerForm="ngForm">
+      <div class="form-group">
+        <label for="firstName">Nombre</label>
+        <input
+          type="text"
+          id="firstName"
+          name="firstName"
+          [(ngModel)]="firstName"
+          required
+          placeholder="Tu nombre"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="lastName">Apellidos</label>
+        <input
+          type="text"
+          id="lastName"
+          name="lastName"
+          [(ngModel)]="lastName"
+          required
+          placeholder="Tus apellidos"
+        />
+      </div>
+
       <div class="form-group">
         <label for="username">Usuario</label>
         <input

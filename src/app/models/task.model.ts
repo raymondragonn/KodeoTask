@@ -4,7 +4,9 @@ export interface Task {
   description?: string;
   status: TaskStatus;
   createdBy: number;
-  assignedTo?: number;
+  createdByUsername?: string; // Nombre de usuario del creador
+  assignedTo?: number; // Mantener para compatibilidad
+  assignedUsers?: number[]; // Lista de usuarios asignados
   createdAt?: string;
   updatedAt?: string;
   completedAt?: string;
@@ -23,6 +25,8 @@ export interface User {
   id: number;
   username: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export interface AuthResponse {
@@ -30,6 +34,8 @@ export interface AuthResponse {
   token?: string;
   userId?: number;
   username?: string;
+  firstName?: string;
+  lastName?: string;
   message?: string;
   error?: string;
 }

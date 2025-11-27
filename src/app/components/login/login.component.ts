@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -19,11 +20,13 @@ export class LoginComponent {
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private toastr: ToastrService
   ) {}
 
   onSubmit(): void {
     if (!this.username || !this.password) {
+      this.toastr.warning('Por favor, completa todos los campos', 'Campos incompletos');
       this.error = 'Por favor, completa todos los campos';
       return;
     }
@@ -34,14 +37,22 @@ export class LoginComponent {
     this.authService.login(this.username, this.password).subscribe({
       next: (response) => {
         if (response.success) {
-          this.router.navigate(['/tasks']);
+          this.toastr.success('¡Bienvenido! Sesión iniciada correctamente', 'Inicio de sesión exitoso');
+          setTimeout(() => {
+            this.router.navigate(['/tasks']);
+          }, 500);
         } else {
-          this.error = response.error || 'Error al iniciar sesión';
+          const errorMsg = response.error || response.message || 'Error al iniciar sesión';
+          this.toastr.error(errorMsg, 'Error al iniciar sesión');
+          this.error = errorMsg;
           this.loading = false;
         }
       },
       error: (err) => {
-        this.error = err.error?.error || 'Error al conectar con el servidor';
+        // Manejar errores del servidor (401, 500, etc.)
+        const errorMessage = err.error?.error || err.error?.message || 'Error al conectar con el servidor';
+        this.toastr.error(errorMessage, 'Error al iniciar sesión');
+        this.error = errorMessage;
         this.loading = false;
       }
     });

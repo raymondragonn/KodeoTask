@@ -2,34 +2,98 @@
   <!-- Header -->
   <header class="tasks-header">
     <div class="header-left">
-      <button class="icon-btn menu-btn" aria-label="Menú" (click)="toggleSidebar()">
+      <button class="icon-btn menu-btn" aria-label="Menú" (click)="toggleSidebar()" [class.active]="sidebarVisible">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          <rect class="hamburger-line line-1" x="3" y="5" width="18" height="2" rx="1"></rect>
+          <rect class="hamburger-line line-2" x="3" y="11" width="18" height="2" rx="1"></rect>
+          <rect class="hamburger-line line-3" x="3" y="17" width="18" height="2" rx="1"></rect>
         </svg>
       </button>
       <div class="header-title">
-        <div class="calendar-icon">21</div>
-        <span>TaskCore</span>
+        <div class="calendar-icon">
+          <span class="calendar-day">{{ currentDay }}</span>
+          <span class="calendar-month">{{ currentMonth }}</span>
+        </div>
+        <span>KodeoTask</span>
       </div>
     </div>
     <div class="header-right">
-      <button class="icon-btn" aria-label="Ayuda">
+      <button class="icon-btn" [class.active]="viewMode === 'list'" aria-label="Vista lista" (click)="viewMode = 'list'" title="Vista lista">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+          <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
         </svg>
       </button>
-      <button class="icon-btn active" aria-label="Tareas">
+      <button class="icon-btn" [class.active]="viewMode === 'columns'" aria-label="Vista columnas" (click)="viewMode = 'columns'" title="Vista columnas">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+          <path d="M4 6h4v12H4V6zm6 0h4v12h-4V6zm6 0h4v12h-4V6z"/>
         </svg>
       </button>
-      <button class="icon-btn" aria-label="Apps">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/>
-        </svg>
-      </button>
-      <div class="user-avatar">
-        <span>{{ currentUser?.username?.charAt(0).toUpperCase() || 'U' }}</span>
+      
+      <!-- Notificaciones -->
+      <div class="notifications-container">
+        <button class="icon-btn notifications-btn" (click)="toggleNotifications($event)" aria-label="Notificaciones" title="Notificaciones">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+          </svg>
+          <span class="notification-badge" *ngIf="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+        </button>
+        <div *ngIf="showNotifications" class="notifications-dropdown">
+          <div class="notifications-header">
+            <h3>Notificaciones</h3>
+            <button class="icon-btn-small" (click)="markAllAsRead()" *ngIf="unreadCount > 0" title="Marcar todas como leídas">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+              </svg>
+            </button>
+          </div>
+          <div class="notifications-list">
+            <div *ngIf="notifications.length === 0" class="no-notifications">
+              <p>No hay notificaciones</p>
+            </div>
+            <div *ngFor="let notification of notifications" 
+                 class="notification-item" 
+                 [class.unread]="!notification.read"
+                 (click)="openTaskFromNotification(notification.task)">
+              <div class="notification-content">
+                <div class="notification-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  </svg>
+                  <strong>{{ notification.task.title }}</strong>
+                </div>
+                <div class="notification-message" *ngIf="notification.task.createdByUsername">
+                  Asignada por <strong>{{ notification.task.createdByUsername }}</strong>
+                </div>
+                <div class="notification-time">
+                  {{ formatNotificationTime(notification.timestamp) }}
+                </div>
+              </div>
+              <button class="notification-close" (click)="clearNotification(notification.id, $event)" title="Eliminar notificación">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="user-menu-container">
+        <button class="user-avatar" (click)="toggleUserMenu($event)" aria-label="Menú de usuario">
+          <span>{{ getInitials() }}</span>
+        </button>
+        <div *ngIf="showUserMenu" class="user-dropdown-menu">
+          <div class="user-info">
+            <div class="user-name">{{ getFullName() }}</div>
+            <div class="user-email">{{ currentUser?.email || '' }}</div>
+          </div>
+          <button class="dropdown-item logout-item" (click)="logout()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+            </svg>
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -41,7 +105,7 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
           <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
         </svg>
-        <span>Crear</span>
+        <span>Nueva tarea</span>
       </button>
 
       <nav class="sidebar-nav">
@@ -54,16 +118,16 @@
       </nav>
 
       <div class="lists-section">
-        <div class="lists-header">
+        <div class="lists-header" (click)="listsSectionVisible = !listsSectionVisible">
           <span>Listas</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M7 10l5 5 5-5z"/>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.rotated]="!listsSectionVisible">
+            <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
         </div>
-        <div class="lists-content">
+        <div class="lists-content" [class.hidden]="!listsSectionVisible">
           <div *ngFor="let category of categories" class="list-item" 
                [class.active]="selectedCategory === category"
-               (click)="selectedCategory = category">
+               (click)="toggleCategoryVisibilityOnClick(category, $event)">
             <input type="checkbox" 
                    [checked]="isCategoryVisible(category)"
                    (change)="toggleCategoryVisibility(category, $event)"
@@ -85,27 +149,25 @@
 
     <!-- Main Content -->
     <main class="tasks-main">
-      <div class="tasks-content">
+      <div class="tasks-content" [class.columns-view]="viewMode === 'columns'">
         <div *ngFor="let category of getVisibleCategories()" class="category-card">
           <div class="card-header">
             <h2 class="category-title">{{ category }}</h2>
-            <button class="icon-btn menu-dots" aria-label="Menú">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-              </svg>
-            </button>
-          </div>
-
-          <!-- Quick Add Task -->
-          <div class="quick-add-task">
-            <div class="task-checkbox-placeholder"></div>
-            <input 
-              type="text" 
-              class="quick-add-input"
-              placeholder="Agregar una tarea"
-              [(ngModel)]="quickAddTitle[category]"
-              (keyup.enter)="quickAddTask(category)"
-            />
+            <div class="menu-container">
+              <button class="icon-btn menu-dots" aria-label="Menú" (click)="toggleCategoryMenu(category, $event)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                </svg>
+              </button>
+              <div *ngIf="openMenuCategory === category" class="dropdown-menu">
+                <button class="dropdown-item delete-item" (click)="deleteCategory(category)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                  </svg>
+                  <span>Eliminar lista</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Pending Tasks -->
@@ -120,17 +182,26 @@
                 />
                 <span class="checkmark"></span>
               </label>
-              <span class="task-title" 
-                    [class.completed]="task.status === TaskStatus.COMPLETED"
-                    (click)="openTaskDetailsModal(task)">
-                {{ task.title }}
-              </span>
-              <span class="task-due-date" *ngIf="task.dueDate" (click)="openTaskDetailsModal(task)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
-                </svg>
-                {{ formatDate(task.dueDate) }}
-              </span>
+              <div class="task-content" (click)="openTaskDetailsModal(task)">
+                <div class="task-header">
+                  <span class="task-title" 
+                        [class.completed]="task.status === TaskStatus.COMPLETED">
+                    {{ task.title }}
+                  </span>
+                  <span class="task-assigned-by" *ngIf="isTaskAssignedToMe(task) && task.createdByUsername">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                    Asignada por {{ task.createdByUsername }}
+                  </span>
+                </div>
+                <span class="task-due-date" *ngIf="task.dueDate">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+                  </svg>
+                  {{ formatDate(task.dueDate) }}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -194,8 +265,27 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Fecha de vencimiento</label>
-          <input type="date" [(ngModel)]="taskDueDate" name="dueDate" />
+          <label>Fecha de entrega *</label>
+          <input type="date" [(ngModel)]="taskDueDate" name="dueDate" required />
+        </div>
+        <div class="form-group">
+          <label>Asignar a usuarios</label>
+          <div class="users-select-container">
+            <div class="users-list">
+              <label *ngFor="let user of availableUsers" class="user-checkbox-label">
+                <input 
+                  type="checkbox" 
+                  [value]="user.id"
+                  [checked]="isUserSelected(user.id)"
+                  (change)="toggleUserSelection(user.id)"
+                />
+                <span>{{ getUserDisplayName(user) }}</span>
+              </label>
+            </div>
+            <p *ngIf="availableUsers.length === 0" class="no-users-message">
+              No hay usuarios disponibles
+            </p>
+          </div>
         </div>
         <div class="form-actions">
           <button type="button" (click)="closeCreateModal()" class="btn btn-secondary">Cancelar</button>
@@ -305,6 +395,49 @@
           ></textarea>
         </div>
 
+        <div class="detail-section" *ngIf="isTaskAssignedToMe(selectedTask) && selectedTask.createdByUsername">
+          <label class="detail-label">Asignada por</label>
+          <div class="detail-value">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 4px;">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            {{ selectedTask.createdByUsername }}
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <label class="detail-label">Asignada a</label>
+          <div *ngIf="!isEditingInDetails || !isTaskOwner()" class="detail-value">
+            <div *ngIf="getAssignedUsersNames().length > 0" class="assigned-users-list">
+              <span *ngFor="let userName of getAssignedUsersNames(); let last = last" class="assigned-user-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 4px;">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+                {{ userName }}
+              </span>
+            </div>
+            <span *ngIf="getAssignedUsersNames().length === 0" class="no-assigned-users">
+              Sin asignar
+            </span>
+          </div>
+          <div *ngIf="isEditingInDetails && isTaskOwner()" class="users-select-container">
+            <div class="users-list">
+              <label *ngFor="let user of availableUsers" class="user-checkbox-label">
+                <input 
+                  type="checkbox" 
+                  [value]="user.id"
+                  [checked]="isUserSelected(user.id)"
+                  (change)="toggleUserSelection(user.id)"
+                />
+                <span>{{ getUserDisplayName(user) }}</span>
+              </label>
+            </div>
+            <p *ngIf="availableUsers.length === 0" class="no-users-message">
+              No hay usuarios disponibles
+            </p>
+          </div>
+        </div>
+
         <div class="detail-section">
           <label class="detail-label">Categoría/Lista</label>
           <div *ngIf="!isEditingInDetails || !isTaskOwner()" class="detail-value">
@@ -362,25 +495,27 @@
 
       <div class="task-details-actions">
         <button 
-          type="button" 
-          (click)="isEditingInDetails ? cancelEditInDetails() : closeTaskDetailsModal()" 
-          class="btn btn-secondary">
-          {{ isEditingInDetails ? 'Cancelar' : 'Cerrar' }}
-        </button>
-        <button 
-          *ngIf="isTaskOwner()"
-          type="button" 
-          (click)="toggleEditInDetails()" 
-          class="btn btn-primary">
-          {{ isEditingInDetails ? 'Guardar' : 'Editar' }}
-        </button>
-        <button 
           *ngIf="isTaskOwner()"
           type="button" 
           (click)="deleteTask(selectedTask); closeTaskDetailsModal()" 
-          class="btn btn-delete">
+          class="btn btn-delete delete-btn-left">
           Eliminar
         </button>
+        <div class="actions-right">
+          <button 
+            type="button" 
+            (click)="isEditingInDetails ? cancelEditInDetails() : closeTaskDetailsModal()" 
+            class="btn btn-secondary">
+            {{ isEditingInDetails ? 'Cancelar' : 'Cerrar' }}
+          </button>
+          <button 
+            *ngIf="isTaskOwner()"
+            type="button" 
+            (click)="toggleEditInDetails()" 
+            class="btn btn-primary">
+            {{ isEditingInDetails ? 'Guardar' : 'Editar' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>

@@ -14,16 +14,16 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it(`should have the 'TaskCore' title`, () => {
+  it(`should have the 'KodeoTask' title`, () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
-    expect(app.title).toEqual('TaskCore');
+    expect(app.title).toEqual('KodeoTask');
   });
 
   it('should render title', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, TaskCore');
+    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, KodeoTask');
   });
 });

@@ -1,50 +1,107 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
+import SockJS from 'sockjs-client';
+import { Client, Message } from '@stomp/stompjs';
 
 @Injectable({
   providedIn: 'root'
 })
-export class UdpNotificationService {
+export class UdpNotificationService implements OnDestroy {
   private notificationSubject = new Subject<any>();
   public notification$ = this.notificationSubject.asObservable();
-  private udpSocket?: any; // WebSocket o similar para UDP en navegador
-  private isRegistered = false;
+  private stompClient: Client | null = null;
+  private isConnected = false;
+  private currentUserId: number | null = null;
 
   constructor(private authService: AuthService) {
-    // En un navegador, no podemos usar UDP directamente
-    // Usaremos WebSocket o polling como alternativa
-    // Por ahora, simularemos con polling
-    this.startPolling();
+    // Suscribirse a cambios en el usuario autenticado
+    this.authService.currentUser$.subscribe(user => {
+      if (user && user.id) {
+        if (this.currentUserId !== user.id) {
+          this.currentUserId = user.id;
+          this.connect();
+        }
+      } else {
+        this.disconnect();
+      }
+    });
+
+    // Intentar conectar si ya hay un usuario autenticado
+    const currentUser = this.authService.getCurrentUser();
+    if (currentUser && currentUser.id) {
+      this.currentUserId = currentUser.id;
+      this.connect();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.disconnect();
+  }
+
+  private connect(): void {
+    if (this.isConnected || !this.currentUserId) {
+      return;
+    }
+
+    const socket = new SockJS(`${environment.apiUrl}/ws`);
+    this.stompClient = new Client({
+      webSocketFactory: () => socket,
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+      onConnect: () => {
+        this.isConnected = true;
+        this.subscribeToNotifications();
+      },
+      onStompError: (frame) => {
+        console.error('Error en WebSocket:', frame);
+        this.isConnected = false;
+      },
+      onDisconnect: () => {
+        this.isConnected = false;
+      }
+    });
+
+    this.stompClient.activate();
+  }
+
+  private subscribeToNotifications(): void {
+    if (!this.stompClient || !this.isConnected || !this.currentUserId) {
+      return;
+    }
+
+    const topic = `/topic/user/${this.currentUserId}/tasks`;
+    
+    this.stompClient.subscribe(topic, (message: Message) => {
+      try {
+        const notification = JSON.parse(message.body);
+        this.notificationSubject.next(notification);
+      } catch (error) {
+        console.error('Error al parsear notificación:', error);
+      }
+    });
+  }
+
+  private disconnect(): void {
+    if (this.stompClient) {
+      this.stompClient.deactivate();
+      this.stompClient = null;
+      this.isConnected = false;
+      this.currentUserId = null;
+    }
   }
 
   registerForNotifications(): void {
-    const currentUser = this.authService.getCurrentUser();
-    if (!currentUser || this.isRegistered) return;
-
-    // En un navegador real, esto se haría a través de WebSocket
-    // Por ahora, usamos polling como alternativa
-    this.isRegistered = true;
+    // Ya se registra automáticamente al conectarse
+    if (!this.isConnected) {
+      this.connect();
+    }
   }
 
-  private startPolling(): void {
-    // Polling como alternativa a UDP en navegador
-    // En producción, usar WebSocket
-    setInterval(() => {
-      if (this.authService.isAuthenticated() && this.isRegistered) {
-        // El polling real se haría aquí si fuera necesario
-        // Por ahora, las notificaciones se manejan en el TaskService
-      }
-    }, 5000);
-  }
-
-  // Método para recibir notificaciones (llamado desde el cliente TCP)
+  // Método para recibir notificaciones (mantenido para compatibilidad)
   receiveNotification(notification: any): void {
     this.notificationSubject.next(notification);
   }
-
-  // Nota: En un navegador, no podemos usar UDP directamente
-  // Una alternativa sería usar WebSocket para notificaciones en tiempo real
-  // Este servicio está preparado para esa integración
 }
-

@@ -1,4 +1,4 @@
-# TaskCore - Sistema de Gestión de Tareas Colaborativas
+# KodeoTask - Sistema de Gestión de Tareas Colaborativas
 
 Aplicación de gestión de tareas colaborativas con arquitectura Cliente-Servidor que implementa RESTful API, comunicación TCP/UDP, multithreading y autenticación.
 
@@ -35,7 +35,7 @@ mvn clean compile
 
 3. Ejecuta el servidor:
 ```bash
-mvn exec:java -Dexec.mainClass="com.taskcore.server.TaskCoreServer"
+mvn exec:java -Dexec.mainClass="com.kodeotask.server.KodeoTaskServer"
 ```
 
 El servidor se iniciará en:
@@ -85,10 +85,10 @@ La aplicación estará disponible en `http://localhost:4200`
 ## Estructura del Proyecto
 
 ```
-TaskCore/
+KodeoTask/
 ├── server/                 # Servidor Java
 │   ├── src/main/java/
-│   │   └── com/taskcore/
+│   │   └── com/kodeotask/
 │   │       ├── model/      # Modelos de datos
 │   │       ├── database/   # Gestión de BD
 │   │       └── server/     # Servidores TCP/UDP y REST
@@ -112,7 +112,7 @@ El servidor envía notificaciones UDP cuando:
 
 ## Base de Datos
 
-La aplicación usa SQLite. El archivo `taskcore.db` se crea automáticamente en la raíz del proyecto del servidor.
+La aplicación usa SQLite. El archivo `kodeotask.db` se crea automáticamente en la raíz del proyecto del servidor.
 
 ## Desarrollo
 

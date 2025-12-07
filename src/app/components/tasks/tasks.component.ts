@@ -18,7 +18,6 @@ import { Subscription, firstValueFrom } from 'rxjs';
   styleUrl: './tasks.component.scss'
 })
 export class TasksComponent implements OnInit, OnDestroy {
-  // Exponer TaskStatus para uso en el template
   TaskStatus = TaskStatus;
   
   tasks: Task[] = [];
@@ -28,43 +27,38 @@ export class TasksComponent implements OnInit, OnDestroy {
   showCreateListModal = false;
   showEditModal = false;
   showTaskDetailsModal = false;
-  isEditingInDetails = false; // Controla si estamos editando en el modal de detalles
+  isEditingInDetails = false;
   selectedTask: Task | null = null;
   filterStatus: string = 'ALL';
   
-  // Agrupación por categoría
   tasksByCategory: { [key: string]: Task[] } = {};
   categories: string[] = [];
-  createdLists: Set<string> = new Set(); // Listas creadas explícitamente (incluso si están vacías)
+  createdLists: Set<string> = new Set();
   selectedCategory: string | null = null;
   showCompletedTasks: { [key: string]: boolean } = {};
-  visibleCategories: { [key: string]: boolean } = {}; // Controla qué categorías están visibles
-  sidebarVisible = true; // Controla la visibilidad del sidebar
-  openMenuCategory: string | null = null; // Controla qué menú de categoría está abierto
-  listsSectionVisible = true; // Controla la visibilidad del listado de listas
-  viewMode: 'list' | 'columns' = 'list'; // Controla el modo de vista: lista o columnas
-  showUserMenu = false; // Controla la visibilidad del menú de usuario
-  showNotifications = false; // Controla la visibilidad del menú de notificaciones
+  visibleCategories: { [key: string]: boolean } = {};
+  sidebarVisible = true;
+  openMenuCategory: string | null = null;
+  listsSectionVisible = true;
+  viewMode: 'list' | 'columns' = 'list';
+  showUserMenu = false;
+  showNotifications = false;
   
-  // Notificaciones
   notifications: Array<{id: number, task: Task, type: string, timestamp: Date, read: boolean}> = [];
   unreadCount = 0;
   
-  // Formulario
   taskTitle = '';
   taskDescription = '';
   taskAssignedTo: number | null = null;
   taskCategory: string = '';
   taskDueDate: string = '';
-  selectedUserIds: number[] = []; // Usuarios seleccionados para asignar
+  selectedUserIds: number[] = [];
+  selectedUserIdsInDetails: number[] = [];
   
-  // Formulario Lista
   listName = '';
   
-  // Usuarios disponibles
   availableUsers: User[] = [];
   
-  // Fecha actual
   currentDay: number = new Date().getDate();
   currentMonth: string = '';
   
@@ -81,16 +75,13 @@ export class TasksComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Verificar autenticación
     if (!this.authService.isAuthenticated()) {
       this.router.navigate(['/login']);
       return;
     }
 
-    // Obtener usuario actual del servicio de autenticación
     this.currentUser = this.authService.getCurrentUser();
     
-    // Si no hay usuario en el servicio, intentar obtenerlo del observable
     if (!this.currentUser) {
       const userSub = this.authService.currentUser$.subscribe(user => {
         this.currentUser = user;
@@ -98,30 +89,22 @@ export class TasksComponent implements OnInit, OnDestroy {
       this.subscriptions.push(userSub);
     }
     
-    // Inicializar fecha actual
     this.updateCurrentDate();
-    
-    // Cargar listas creadas desde localStorage
     this.loadCreatedLists();
-    
     this.loadTasks();
 
-    // Suscribirse a actualizaciones en tiempo real
     const sub = this.taskService.taskUpdate$.subscribe(task => {
-      this.loadTasks(); // Recargar tareas cuando hay una actualización
+      this.loadTasks();
     });
     this.subscriptions.push(sub);
 
-    // Suscribirse a notificaciones UDP
     const notificationSub = this.udpNotificationService.notification$.subscribe((notification: any) => {
       this.handleNotification(notification);
     });
     this.subscriptions.push(notificationSub);
     
-    // Cargar tareas asignadas al iniciar para mostrar notificaciones
     this.loadAssignedTasksNotifications();
 
-    // Cerrar menú al hacer clic fuera
     this.documentClickHandler = this.handleDocumentClick.bind(this);
     document.addEventListener('click', this.documentClickHandler);
   }
@@ -154,11 +137,6 @@ export class TasksComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Error al cargar tareas', err);
-        // AUTENTICACIÓN DESACTIVADA
-        // if (err.status === 401) {
-        //   this.authService.logout();
-        //   this.router.navigate(['/login']);
-        // }
       }
     });
   }
@@ -176,25 +154,21 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.tasksByCategory = {};
     this.categories = [];
     
-    // Primero, agregar todas las listas creadas explícitamente (incluso si están vacías)
     this.createdLists.forEach(listName => {
       if (!this.tasksByCategory[listName]) {
         this.tasksByCategory[listName] = [];
         this.categories.push(listName);
-        // Inicializar como visible si no existe
         if (this.visibleCategories[listName] === undefined) {
           this.visibleCategories[listName] = true;
         }
       }
     });
     
-    // Luego, agregar tareas a sus categorías
     this.filteredTasks.forEach(task => {
       const category = task.category || 'Sin categoría';
       if (!this.tasksByCategory[category]) {
         this.tasksByCategory[category] = [];
         this.categories.push(category);
-        // Inicializar como visible si no existe
         if (this.visibleCategories[category] === undefined) {
           this.visibleCategories[category] = true;
         }
@@ -202,7 +176,6 @@ export class TasksComponent implements OnInit, OnDestroy {
       this.tasksByCategory[category].push(task);
     });
     
-    // Ordenar categorías
     this.categories.sort();
   }
 
@@ -216,12 +189,10 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   toggleCategoryVisibilityOnClick(category: string, event: Event): void {
-    // Si el clic fue en el checkbox, no hacer nada (ya se maneja en toggleCategoryVisibility)
     const target = event.target as HTMLElement;
     if (target.tagName === 'INPUT' || target.closest('input')) {
       return;
     }
-    // Toggle la visibilidad al hacer clic en la lista
     this.visibleCategories[category] = !this.visibleCategories[category];
   }
 
@@ -260,7 +231,6 @@ export class TasksComponent implements OnInit, OnDestroy {
   loadUsers(): void {
     this.userService.getUsers().subscribe({
       next: (users) => {
-        // Excluir el usuario actual de la lista
         const currentUserId = this.currentUser?.id;
         this.availableUsers = users.filter(user => user.id !== currentUserId);
       },
@@ -294,6 +264,72 @@ export class TasksComponent implements OnInit, OnDestroy {
     return user.username;
   }
 
+  getUserDisplayNameById(userId: number): string {
+    const user = this.availableUsers.find(u => u.id === userId);
+    return user ? this.getUserDisplayName(user) : 'Usuario desconocido';
+  }
+
+  getAssignedUsersNames(): string[] {
+    if (!this.selectedTask) {
+      return [];
+    }
+    if (this.selectedTask.assignedUsersNames && this.selectedTask.assignedUsersNames.length > 0) {
+      return this.selectedTask.assignedUsersNames;
+    }
+    if (this.selectedTask.assignedUsers && this.selectedTask.assignedUsers.length > 0) {
+      return this.selectedTask.assignedUsers.map(userId => this.getUserDisplayNameById(userId));
+    }
+    return [];
+  }
+  
+  getAssignedUsersNamesForTask(task: Task): string[] {
+    if (task.assignedUsersNames && task.assignedUsersNames.length > 0) {
+      return task.assignedUsersNames;
+    }
+    if (task.assignedUsers && task.assignedUsers.length > 0) {
+      return task.assignedUsers.map(userId => this.getUserDisplayNameById(userId));
+    }
+    return [];
+  }
+  
+  getFirstAssignedUserName(task: Task): string {
+    if (!task) {
+      return '';
+    }
+    
+    if (task.assignedUsers && task.assignedUsers.length > 0 && this.availableUsers && this.availableUsers.length > 0) {
+      const user = this.availableUsers.find(u => u.id === task.assignedUsers![0]);
+      if (user) {
+        return user.username;
+      }
+    }
+    
+    const names = this.getAssignedUsersNamesForTask(task);
+    if (names.length > 0) {
+      const firstUser = names[0];
+      const match = firstUser.match(/\(([^)]+)\)/);
+      if (match) {
+        return match[1];
+      }
+      return firstUser;
+    }
+    
+    return '';
+  }
+
+  isUserSelectedInDetails(userId: number): boolean {
+    return this.selectedUserIdsInDetails.includes(userId);
+  }
+
+  toggleUserSelectionInDetails(userId: number): void {
+    const index = this.selectedUserIdsInDetails.indexOf(userId);
+    if (index > -1) {
+      this.selectedUserIdsInDetails.splice(index, 1);
+    } else {
+      this.selectedUserIdsInDetails.push(userId);
+    }
+  }
+
   closeCreateModal(): void {
     this.showCreateModal = false;
     this.showEditModal = false;
@@ -304,32 +340,33 @@ export class TasksComponent implements OnInit, OnDestroy {
   openTaskDetailsModal(task: Task): void {
     this.selectedTask = task;
     this.isEditingInDetails = false;
-    // Cargar los valores del formulario
     this.taskTitle = task.title;
     this.taskDescription = task.description || '';
     this.taskCategory = task.category || '';
     this.taskDueDate = task.dueDate || '';
+    this.selectedUserIdsInDetails = task.assignedUsers ? [...task.assignedUsers] : [];
     this.showTaskDetailsModal = true;
+    this.loadUsers();
   }
 
   closeTaskDetailsModal(): void {
     if (this.isEditingInDetails) {
-      // Si está editando, cancelar cambios
       if (this.selectedTask) {
         this.taskTitle = this.selectedTask.title;
         this.taskDescription = this.selectedTask.description || '';
         this.taskCategory = this.selectedTask.category || '';
         this.taskDueDate = this.selectedTask.dueDate || '';
+        this.selectedUserIdsInDetails = this.selectedTask.assignedUsers ? [...this.selectedTask.assignedUsers] : [];
       }
     }
     this.showTaskDetailsModal = false;
     this.isEditingInDetails = false;
     this.selectedTask = null;
-    // Limpiar formulario
     this.taskTitle = '';
     this.taskDescription = '';
     this.taskCategory = '';
     this.taskDueDate = '';
+    this.selectedUserIdsInDetails = [];
   }
 
   isTaskAssignedToMe(task: Task): boolean {
@@ -338,18 +375,22 @@ export class TasksComponent implements OnInit, OnDestroy {
     }
     const currentUserId = this.currentUser.id;
     
-    // Verificar si la tarea fue asignada al usuario actual (no creada por él)
     if (task.createdBy !== currentUserId) {
-      // Verificar si está en la lista de usuarios asignados
       if (task.assignedUsers && task.assignedUsers.includes(currentUserId)) {
         return true;
       }
-      // Verificar el campo assignedTo (compatibilidad)
       if (task.assignedTo === currentUserId) {
         return true;
       }
     }
     return false;
+  }
+  
+  isTaskCreatedByMe(task: Task): boolean {
+    if (!this.currentUser || !task) {
+      return false;
+    }
+    return task.createdBy === this.currentUser.id;
   }
 
   isTaskOwner(): boolean {
@@ -359,18 +400,14 @@ export class TasksComponent implements OnInit, OnDestroy {
 
   toggleEditInDetails(): void {
     if (this.isEditingInDetails) {
-      // Guardar cambios
       this.saveTaskFromDetails();
     } else {
-      // Activar modo edición
       if (this.selectedTask) {
         this.taskTitle = this.selectedTask.title;
         this.taskDescription = this.selectedTask.description || '';
         this.taskCategory = this.selectedTask.category || '';
         this.taskDueDate = this.selectedTask.dueDate || '';
-        // Inicializar usuarios asignados
-        this.selectedUserIds = this.selectedTask.assignedUsers ? [...this.selectedTask.assignedUsers] : [];
-        // Cargar usuarios disponibles si no están cargados
+        this.selectedUserIdsInDetails = this.selectedTask.assignedUsers ? [...this.selectedTask.assignedUsers] : [];
         if (this.availableUsers.length === 0) {
           this.loadUsers();
         }
@@ -385,8 +422,7 @@ export class TasksComponent implements OnInit, OnDestroy {
       this.taskDescription = this.selectedTask.description || '';
       this.taskCategory = this.selectedTask.category || '';
       this.taskDueDate = this.selectedTask.dueDate || '';
-      // Restaurar usuarios asignados
-      this.selectedUserIds = this.selectedTask.assignedUsers ? [...this.selectedTask.assignedUsers] : [];
+      this.selectedUserIdsInDetails = this.selectedTask.assignedUsers ? [...this.selectedTask.assignedUsers] : [];
     }
     this.isEditingInDetails = false;
   }
@@ -403,9 +439,8 @@ export class TasksComponent implements OnInit, OnDestroy {
       dueDate: this.taskDueDate || undefined
     };
 
-    // Incluir usuarios asignados
-    if (this.selectedUserIds.length > 0) {
-      updatedTask.assignedUsers = this.selectedUserIds;
+    if (this.selectedUserIdsInDetails.length > 0) {
+      updatedTask.assignedUsers = this.selectedUserIdsInDetails;
     } else {
       updatedTask.assignedUsers = [];
     }
@@ -415,11 +450,9 @@ export class TasksComponent implements OnInit, OnDestroy {
         this.toastr.success('Tarea actualizada correctamente', 'Éxito');
         this.loadTasks();
         this.isEditingInDetails = false;
-        // Recargar la tarea actualizada
         this.taskService.getTask(this.selectedTask!.id!).subscribe({
           next: (task) => {
             this.selectedTask = task;
-            // Actualizar selectedUserIds con los nuevos valores
             this.selectedUserIds = task.assignedUsers ? [...task.assignedUsers] : [];
           }
         });
@@ -448,16 +481,13 @@ export class TasksComponent implements OnInit, OnDestroy {
 
     const listName = this.listName.trim();
     
-    // Agregar la lista al conjunto de listas creadas (sin crear tarea placeholder)
     this.createdLists.add(listName);
     this.saveCreatedLists();
     
-    // Inicializar la categoría como visible
     if (this.visibleCategories[listName] === undefined) {
       this.visibleCategories[listName] = true;
     }
     
-    // Actualizar las categorías para que aparezca la nueva lista
     this.updateCategories();
     
     this.toastr.success(`Lista "${listName}" creada correctamente`, 'Éxito');
@@ -485,7 +515,6 @@ export class TasksComponent implements OnInit, OnDestroy {
       return;
     }
     
-    // Verificar que hay token
     const token = this.authService.getToken();
     if (!token) {
       this.toastr.error('No estás autenticado. Por favor, inicia sesión nuevamente', 'Error de autenticación');
@@ -498,16 +527,12 @@ export class TasksComponent implements OnInit, OnDestroy {
       description: this.taskDescription || '',
       status: TaskStatus.PENDING,
       category: this.taskCategory || undefined,
-      dueDate: this.taskDueDate || null // Enviar null si no hay fecha
+      dueDate: this.taskDueDate || null
     };
     
-    // Agregar lista de usuarios asignados si hay seleccionados
     if (this.selectedUserIds.length > 0) {
       newTask.assignedUsers = this.selectedUserIds;
     }
-    
-    console.log('Enviando tarea:', newTask);
-    console.log('Token disponible:', !!token);
 
     this.taskService.createTask(newTask).subscribe({
       next: () => {
@@ -519,10 +544,6 @@ export class TasksComponent implements OnInit, OnDestroy {
         this.selectedUserIds = [];
       },
       error: (err) => {
-        console.error('Error completo al crear tarea:', err);
-        console.error('Status:', err.status);
-        console.error('Error body:', err.error);
-        
         let errorMessage = 'Error al crear la tarea';
         if (err.status === 403) {
           errorMessage = 'No tienes permisos para crear tareas. Verifica tu sesión.';
@@ -563,9 +584,7 @@ export class TasksComponent implements OnInit, OnDestroy {
         this.taskCategory = '';
         this.taskDueDate = '';
       },
-      error: (err) => {
-        console.error('Error al actualizar tarea', err);
-      }
+      error: (err) => {}
     });
   }
 
@@ -581,9 +600,7 @@ export class TasksComponent implements OnInit, OnDestroy {
       next: () => {
         this.loadTasks();
       },
-      error: (err) => {
-        console.error('Error al actualizar estado', err);
-      }
+      error: (err) => {}
     });
   }
 
@@ -600,9 +617,7 @@ export class TasksComponent implements OnInit, OnDestroy {
         next: () => {
           this.loadTasks();
         },
-        error: (err) => {
-          console.error('Error al eliminar tarea', err);
-        }
+        error: (err) => {}
       });
     }
   }
@@ -705,26 +720,21 @@ export class TasksComponent implements OnInit, OnDestroy {
     const tasksInCategory = this.tasksByCategory[category] || [];
     
     if (tasksInCategory.length === 0) {
-      // Si no hay tareas, solo eliminar la lista del registro
       this.createdLists.delete(category);
       this.saveCreatedLists();
       this.updateCategories();
       return;
     }
 
-    // Eliminar todas las tareas de la categoría
     const deletePromises = tasksInCategory.map(task => 
       firstValueFrom(this.taskService.deleteTask(task.id!))
     );
 
     Promise.all(deletePromises).then(() => {
-      // Eliminar la lista del registro si era una lista creada explícitamente
       this.createdLists.delete(category);
       this.saveCreatedLists();
       this.loadTasks();
-    }).catch((err) => {
-      console.error('Error al eliminar tareas de la categoría', err);
-    });
+    }).catch((err) => {});
   }
 
   toggleUserMenu(event: Event): void {
@@ -741,14 +751,12 @@ export class TasksComponent implements OnInit, OnDestroy {
       return 'U';
     }
     
-    // Priorizar firstName y lastName si están disponibles
     if (this.currentUser.firstName && this.currentUser.lastName) {
       const firstInitial = this.currentUser.firstName.trim().charAt(0).toUpperCase();
       const lastInitial = this.currentUser.lastName.trim().charAt(0).toUpperCase();
       return firstInitial + lastInitial;
     }
     
-    // Si solo hay firstName
     if (this.currentUser.firstName) {
       const firstName = this.currentUser.firstName.trim();
       if (firstName.length >= 2) {
@@ -757,23 +765,18 @@ export class TasksComponent implements OnInit, OnDestroy {
       return firstName.charAt(0).toUpperCase();
     }
     
-    // Fallback al username si no hay firstName/lastName
     if (this.currentUser.username) {
       const username = this.currentUser.username.trim();
       
-      // Si el username tiene espacios, tomar las primeras letras de cada palabra
       const parts = username.split(' ');
       if (parts.length > 1) {
-        // Tomar la primera letra de la primera y última palabra
         return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
       }
       
-      // Si es un solo nombre, tomar las primeras dos letras
       if (username.length >= 2) {
         return username.substring(0, 2).toUpperCase();
       }
       
-      // Si solo tiene una letra, usar esa letra
       return username.charAt(0).toUpperCase();
     }
     
@@ -785,21 +788,17 @@ export class TasksComponent implements OnInit, OnDestroy {
       return 'Usuario';
     }
     
-    // Si hay firstName y lastName, combinarlos
     if (this.currentUser.firstName && this.currentUser.lastName) {
       return `${this.currentUser.firstName} ${this.currentUser.lastName}`;
     }
     
-    // Si solo hay firstName
     if (this.currentUser.firstName) {
       return this.currentUser.firstName;
     }
     
-    // Fallback al username
     return this.currentUser.username || 'Usuario';
   }
 
-  // Métodos para manejar listas creadas
   private loadCreatedLists(): void {
     try {
       const userId = this.authService.getCurrentUser()?.id;
@@ -810,9 +809,7 @@ export class TasksComponent implements OnInit, OnDestroy {
           this.createdLists = new Set(lists);
         }
       }
-    } catch (err) {
-      console.error('Error al cargar listas creadas:', err);
-    }
+    } catch (err) {}
   }
 
   private saveCreatedLists(): void {
@@ -822,30 +819,23 @@ export class TasksComponent implements OnInit, OnDestroy {
         const lists = Array.from(this.createdLists);
         localStorage.setItem(`createdLists_${userId}`, JSON.stringify(lists));
       }
-    } catch (err) {
-      console.error('Error al guardar listas creadas:', err);
-    }
+    } catch (err) {}
   }
 
   private updateCategories(): void {
-    // Forzar actualización de categorías
     this.applyFilter();
   }
 
-  // Métodos para manejar notificaciones
   private handleNotification(notification: any): void {
     if (!this.currentUser) return;
 
-    // Solo procesar notificaciones de tareas asignadas
     if (notification.type === 'task_assigned' && notification.task) {
       const task = notification.task as Task;
       
-      // Verificar si la tarea fue asignada al usuario actual
       const isAssignedToMe = task.assignedUsers?.includes(this.currentUser.id) || 
                              task.assignedTo === this.currentUser.id;
       
       if (isAssignedToMe && task.createdBy !== this.currentUser.id) {
-        // Agregar notificación
         const notificationId = Date.now();
         this.notifications.unshift({
           id: notificationId,
@@ -860,14 +850,12 @@ export class TasksComponent implements OnInit, OnDestroy {
       }
     }
     
-    // Recargar tareas para sincronizar
     this.loadTasks();
   }
 
   private loadAssignedTasksNotifications(): void {
     if (!this.currentUser) return;
     
-    // Cargar tareas y crear notificaciones para las asignadas
     this.taskService.getTasks().subscribe({
       next: (tasks) => {
         const assignedTasks = tasks.filter(task => 
@@ -876,7 +864,6 @@ export class TasksComponent implements OnInit, OnDestroy {
           task.createdBy !== this.currentUser!.id
         );
         
-        // Crear notificaciones para tareas asignadas que aún no están en la lista
         assignedTasks.forEach(task => {
           const exists = this.notifications.some(n => n.task.id === task.id);
           if (!exists) {
@@ -899,7 +886,6 @@ export class TasksComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     this.showNotifications = !this.showNotifications;
     if (this.showNotifications) {
-      // Marcar todas como leídas al abrir
       this.markAllAsRead();
     }
   }
@@ -928,7 +914,6 @@ export class TasksComponent implements OnInit, OnDestroy {
   openTaskFromNotification(task: Task): void {
     this.closeNotifications();
     this.openTaskDetailsModal(task);
-    // Marcar como leída
     const notification = this.notifications.find(n => n.task.id === task.id);
     if (notification) {
       this.markAsRead(notification.id);

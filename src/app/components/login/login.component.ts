@@ -49,7 +49,6 @@ export class LoginComponent {
         }
       },
       error: (err) => {
-        // Manejar errores del servidor (401, 500, etc.)
         const errorMessage = err.error?.error || err.error?.message || 'Error al conectar con el servidor';
         this.toastr.error(errorMessage, 'Error al iniciar sesión');
         this.error = errorMessage;

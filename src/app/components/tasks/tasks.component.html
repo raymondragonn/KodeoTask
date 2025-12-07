@@ -188,11 +188,19 @@
                         [class.completed]="task.status === TaskStatus.COMPLETED">
                     {{ task.title }}
                   </span>
+                  <!-- Mostrar quién asignó la tarea (para usuarios asignados) -->
                   <span class="task-assigned-by" *ngIf="isTaskAssignedToMe(task) && task.createdByUsername">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                     </svg>
                     Asignada por {{ task.createdByUsername }}
+                  </span>
+                  <!-- Mostrar a quién está asignada (para el creador) -->
+                  <span class="task-assigned-to" *ngIf="isTaskCreatedByMe(task) && getAssignedUsersNamesForTask(task).length > 0">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                    Asignada a {{ getFirstAssignedUserName(task) }}
                   </span>
                 </div>
                 <span class="task-due-date" *ngIf="task.dueDate">
@@ -426,8 +434,8 @@
                 <input 
                   type="checkbox" 
                   [value]="user.id"
-                  [checked]="isUserSelected(user.id)"
-                  (change)="toggleUserSelection(user.id)"
+                  [checked]="isUserSelectedInDetails(user.id)"
+                  (change)="toggleUserSelectionInDetails(user.id)"
                 />
                 <span>{{ getUserDisplayName(user) }}</span>
               </label>

@@ -6,7 +6,8 @@ export interface Task {
   createdBy: number;
   createdByUsername?: string; // Nombre de usuario del creador
   assignedTo?: number; // Mantener para compatibilidad
-  assignedUsers?: number[]; // Lista de usuarios asignados
+  assignedUsers?: number[]; // Lista de usuarios asignados (IDs)
+  assignedUsersNames?: string[]; // Lista de nombres de usuarios asignados
   createdAt?: string;
   updatedAt?: string;
   completedAt?: string;

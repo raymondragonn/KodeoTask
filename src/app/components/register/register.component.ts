@@ -68,7 +68,6 @@ export class RegisterComponent {
         }
       },
       error: (err) => {
-        // Manejar errores del servidor
         const errorMessage = err.error?.message || err.error?.error || 'Error al conectar con el servidor';
         this.toastr.error(errorMessage, 'Error al registrar');
         this.error = errorMessage;

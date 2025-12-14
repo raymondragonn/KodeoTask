@@ -52,6 +52,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   taskAssignedTo: number | null = null;
   taskCategory: string = '';
   taskDueDate: string = '';
+  taskStatus: TaskStatus = TaskStatus.PENDING;
   selectedUserIds: number[] = [];
   selectedUserIdsInDetails: number[] = [];
   
@@ -79,6 +80,10 @@ export class TasksComponent implements OnInit, OnDestroy {
       this.router.navigate(['/login']);
       return;
     }
+
+    // Deshabilitar scroll en body y html
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
 
     this.currentUser = this.authService.getCurrentUser();
     
@@ -110,6 +115,10 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Restaurar scroll cuando se destruye el componente
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+
     this.subscriptions.forEach(sub => sub.unsubscribe());
     if (this.documentClickHandler) {
       document.removeEventListener('click', this.documentClickHandler);
@@ -344,6 +353,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.taskDescription = task.description || '';
     this.taskCategory = task.category || '';
     this.taskDueDate = task.dueDate || '';
+    this.taskStatus = task.status;
     this.selectedUserIdsInDetails = task.assignedUsers ? [...task.assignedUsers] : [];
     this.showTaskDetailsModal = true;
     this.loadUsers();
@@ -356,6 +366,7 @@ export class TasksComponent implements OnInit, OnDestroy {
         this.taskDescription = this.selectedTask.description || '';
         this.taskCategory = this.selectedTask.category || '';
         this.taskDueDate = this.selectedTask.dueDate || '';
+        this.taskStatus = this.selectedTask.status;
         this.selectedUserIdsInDetails = this.selectedTask.assignedUsers ? [...this.selectedTask.assignedUsers] : [];
       }
     }
@@ -366,6 +377,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.taskDescription = '';
     this.taskCategory = '';
     this.taskDueDate = '';
+    this.taskStatus = TaskStatus.PENDING;
     this.selectedUserIdsInDetails = [];
   }
 
@@ -407,6 +419,7 @@ export class TasksComponent implements OnInit, OnDestroy {
         this.taskDescription = this.selectedTask.description || '';
         this.taskCategory = this.selectedTask.category || '';
         this.taskDueDate = this.selectedTask.dueDate || '';
+        this.taskStatus = this.selectedTask.status;
         this.selectedUserIdsInDetails = this.selectedTask.assignedUsers ? [...this.selectedTask.assignedUsers] : [];
         if (this.availableUsers.length === 0) {
           this.loadUsers();
@@ -422,6 +435,7 @@ export class TasksComponent implements OnInit, OnDestroy {
       this.taskDescription = this.selectedTask.description || '';
       this.taskCategory = this.selectedTask.category || '';
       this.taskDueDate = this.selectedTask.dueDate || '';
+      this.taskStatus = this.selectedTask.status;
       this.selectedUserIdsInDetails = this.selectedTask.assignedUsers ? [...this.selectedTask.assignedUsers] : [];
     }
     this.isEditingInDetails = false;
@@ -436,13 +450,24 @@ export class TasksComponent implements OnInit, OnDestroy {
       title: this.taskTitle,
       description: this.taskDescription,
       category: this.taskCategory || undefined,
-      dueDate: this.taskDueDate || undefined
+      dueDate: this.taskDueDate || undefined,
+      status: this.taskStatus
     };
 
     if (this.selectedUserIdsInDetails.length > 0) {
       updatedTask.assignedUsers = this.selectedUserIdsInDetails;
     } else {
       updatedTask.assignedUsers = [];
+    }
+
+    // Si el estado cambió a COMPLETED, agregar completedAt
+    if (this.taskStatus === TaskStatus.COMPLETED && !this.selectedTask.completedAt) {
+      updatedTask.completedAt = new Date().toISOString();
+    }
+
+    // Si el estado cambió de COMPLETED a otro, limpiar completedAt
+    if (this.selectedTask.status === TaskStatus.COMPLETED && this.taskStatus !== TaskStatus.COMPLETED) {
+      updatedTask.completedAt = null;
     }
 
     this.taskService.updateTask(this.selectedTask.id!, updatedTask).subscribe({
@@ -453,6 +478,7 @@ export class TasksComponent implements OnInit, OnDestroy {
         this.taskService.getTask(this.selectedTask!.id!).subscribe({
           next: (task) => {
             this.selectedTask = task;
+            this.taskStatus = task.status;
             this.selectedUserIds = task.assignedUsers ? [...task.assignedUsers] : [];
           }
         });
@@ -462,6 +488,51 @@ export class TasksComponent implements OnInit, OnDestroy {
         this.toastr.error('Error al actualizar la tarea', 'Error');
       }
     });
+  }
+
+  changeTaskStatus(newStatus: TaskStatus): void {
+    if (!this.selectedTask) {
+      return;
+    }
+
+    const previousStatus = this.selectedTask.status;
+    this.taskStatus = newStatus;
+
+    const updateData: any = {
+      status: newStatus
+    };
+
+    // Si cambió a COMPLETED, agregar completedAt
+    if (newStatus === TaskStatus.COMPLETED && !this.selectedTask.completedAt) {
+      updateData.completedAt = new Date().toISOString();
+    }
+
+    // Si cambió de COMPLETED a otro, limpiar completedAt
+    if (previousStatus === TaskStatus.COMPLETED && newStatus !== TaskStatus.COMPLETED) {
+      updateData.completedAt = null;
+    }
+
+    this.taskService.updateTask(this.selectedTask.id!, updateData).subscribe({
+      next: () => {
+        this.toastr.success(`Estado cambiado a: ${this.getStatusLabel(newStatus)}`, 'Estado actualizado');
+        this.loadTasks();
+        this.taskService.getTask(this.selectedTask!.id!).subscribe({
+          next: (task) => {
+            this.selectedTask = task;
+            this.taskStatus = task.status;
+          }
+        });
+      },
+      error: (err) => {
+        console.error('Error al actualizar estado', err);
+        this.toastr.error('Error al actualizar el estado', 'Error');
+        this.taskStatus = previousStatus;
+      }
+    });
+  }
+
+  getAvailableStatuses(): TaskStatus[] {
+    return [TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED];
   }
 
   openCreateListModal(): void {

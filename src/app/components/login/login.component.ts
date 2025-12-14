@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,7 +12,7 @@ import { AuthService } from '../../services/auth.service';
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss'
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit, OnDestroy {
   username: string = '';
   password: string = '';
   error: string = '';
@@ -23,6 +23,18 @@ export class LoginComponent {
     private router: Router,
     private toastr: ToastrService
   ) {}
+
+  ngOnInit(): void {
+    // Deshabilitar scroll en body y html
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+  }
+
+  ngOnDestroy(): void {
+    // Restaurar scroll cuando se destruye el componente
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+  }
 
   onSubmit(): void {
     if (!this.username || !this.password) {

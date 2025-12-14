@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,7 +12,7 @@ import { AuthService } from '../../services/auth.service';
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss'
 })
-export class RegisterComponent {
+export class RegisterComponent implements OnInit, OnDestroy {
   firstName: string = '';
   lastName: string = '';
   username: string = '';
@@ -28,6 +28,18 @@ export class RegisterComponent {
     private router: Router,
     private toastr: ToastrService
   ) {}
+
+  ngOnInit(): void {
+    // Deshabilitar scroll en body y html
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+  }
+
+  ngOnDestroy(): void {
+    // Restaurar scroll cuando se destruye el componente
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+  }
 
   onSubmit(): void {
     if (!this.firstName || !this.lastName || !this.username || !this.email || !this.password) {
